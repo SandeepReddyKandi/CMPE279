@@ -5,7 +5,33 @@
 #include <stdlib.h>
 #include <netinet/in.h>
 #include <string.h>
+#include <pwd.h>
 #define PORT 8080
+
+int dropp_privilages(){
+    
+    struct passwd* pwd;
+    
+    pid_t childProcessID,pid;
+
+    childProcessID = fork();
+
+    if(childProcessID ==0){
+        //success
+        printf("\n fork sucessful \n");
+        //getting user id with lessed privilages
+        pwd = getpwnam("nobody");
+        pid = setuid(pwd->pw_uid);
+        if(pid==0){
+            return 1;
+        }
+
+        return 0;
+
+    }
+
+
+}
 
 int main(int argc, char const *argv[])
 {
@@ -15,6 +41,7 @@ int main(int argc, char const *argv[])
     int addrlen = sizeof(address);
     char buffer[1024] = {0};
     char *hello = "Hello from server";
+
 
     // Creating socket file descriptor
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
@@ -53,10 +80,15 @@ int main(int argc, char const *argv[])
         exit(EXIT_FAILURE);
     }
 
-    valread = read(new_socket, buffer, 1024);
-    printf("Read %d bytes: %s\n", valread, buffer);
-    send(new_socket, hello, strlen(hello), 0);
-    printf("Hello message sent\n");
+    //drop privilages 
+    if(dropp_privilages()){
+         //message processing
+            valread = read(new_socket, buffer, 1024);
+            printf("Read %d bytes: %s\n", valread, buffer);
+            send(new_socket, hello, strlen(hello), 0);
+            printf("Hello message sent\n");
+    }
 
+    wait();
     return 0;
 }
